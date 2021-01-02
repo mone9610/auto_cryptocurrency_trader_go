@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  # MySQL
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auto_trader
+      MYSQL_USER: user1
+      MYSQL_PASSWORD: user1
+      TZ: 'Asia/Tokyo'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+    - ./docker/mysql/data:/var/lib/mysql
+    - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    - ./docker/mysql/sql:/docker-entrypoint-initdb.d
+    ports:
+    - 3306:3306
+
+  # phpMyAdmin
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+    - PMA_ARBITRARY=1
+    - PMA_HOSTS=mysql
+    - PMA_USER=root
+    - PMA_PASSWORD=root
+    ports:
+    - 8080:80
+
+  #go
+  go: 
+    build: ./docker/go
+    container_name: go
+    environment:
+      TZ: 'Asia/Tokyo'
+    # volumes:
+    # - ./docker/go:/go
+    tty: true
+
+  #nginx
+  nginx:
+    container_name: nginx
+    build: ./docker/view
+    ports:
+    - 80:80

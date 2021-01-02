@@ -1,0 +1,475 @@
+package model
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+	"utils"
+)
+
+const bitFlyerEndopoint = "https://api.bitflyer.com"
+
+// bitFlyerAPIから取得するtickerデータの構造体
+type TickerParent struct {
+	ProductCode     string  `json:"product_code"`
+	State           string  `json:"state"`
+	Timestamp       string  `json:"timestamp"`
+	TickID          int     `json:"tick_id"`
+	BestBid         float64 `json:"best_bid"` //最低売価格
+	BestAsk         float64 `json:"best_ask"` //最高買価格
+	BestBidSize     float64 `json:"best_bid_size"`
+	BestAskSize     int     `json:"best_ask_size"`
+	TotalBidDepth   float64 `json:"total_bid_depth"`
+	TotalAskDepth   int     `json:"total_ask_depth"`
+	MarketBidSize   int     `json:"market_bid_size"`
+	MarketAskSize   int     `json:"market_ask_size"`
+	Ltp             float64 `json:"ltp"` //最終取引価格
+	Volume          float64 `json:"volume"`
+	VolumeByProduct float64 `json:"volume_by_product"`
+}
+
+type ParentOrderResponse struct {
+	ParentOrderAcceptanceID string `json:"parent_order_acceptance_id"`
+}
+
+type ChildOrderResponse struct {
+	ChildOrderAcceptanceID string `json:"child_order_acceptance_id"`
+}
+
+type BalanceResponse struct {
+	CurrencyCode string  `json:"currency_code"`
+	Amount       float64 `json:"amount"`
+	Available    float64 `json:"available"`
+}
+
+type Executions struct {
+	ID                     int     `json:"id"`
+	ChildOrderID           string  `json:"child_order_id"`
+	Side                   string  `json:"side"`
+	Price                  float64 `json:"price"`
+	Size                   float64 `json:"size"`
+	Commission             float64 `json:"commission"`
+	ExecDate               string  `json:"exec_date"`
+	ChildOrderAcceptanceID string  `json:"child_order_acceptance_id"`
+}
+
+type ParentOrder struct {
+	ID            int    `json:"id"`
+	ParentOrderID string `json:"parent_order_id"`
+	OrderMethod   string `json:"order_method"`
+	ExpireDate    string `json:"expire_date"`
+	TimeInForce   string `json:"time_in_force"`
+	Parameters    []struct {
+		ProductCode   string  `json:"product_code"`
+		ConditionType string  `json:"condition_type"`
+		Side          string  `json:"side"`
+		Price         float64 `json:"price"`
+		Size          float64 `json:"size"`
+		TriggerPrice  float64 `json:"trigger_price"`
+		Offset        float64 `json:"offset"`
+	} `json:"parameters"`
+	ParentOrderAcceptanceID string `json:"parent_order_acceptance_id"`
+}
+
+type ChildOrder struct {
+	ID                     int     `json:"id"`
+	ChildOrderID           string  `json:"child_order_id"`
+	ProductCode            string  `json:"product_code"`
+	Side                   string  `json:"side"`
+	ChildOrderType         string  `json:"child_order_type"`
+	Price                  float64 `json:"price"`
+	AveragePrice           float64 `json:"average_price"`
+	Size                   float64 `json:"size"`
+	ChildOrderState        string  `json:"child_order_state"`
+	ExpireDate             string  `json:"expire_date"`
+	ChildOrderDate         string  `json:"child_order_date"`
+	ChildOrderAcceptanceID string  `json:"child_order_acceptance_id"`
+	OutstandingSize        float64 `json:"outstanding_size"`
+	CancelSize             float64 `json:"cancel_size"`
+	ExecutedSize           float64 `json:"executed_size"`
+	TotalCommission        float64 `json:"total_commission"`
+}
+
+//Tickerから最新の最高価格、最終価格、最低価格を入手するための関数
+// 引数なし、戻り値はtickerから取得した最高価格、最終取引価格、最低価格
+func GETTicker() (hi, la, lo float64) {
+	path := "/v1/getticker?product_code=ETH_JPY"
+	url := bitFlyerEndopoint + path
+	// リクエストを定義
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// リクエストを送信
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	byteArray, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(byteArray))
+
+	var ticker TickerParent
+	json.Unmarshal([]byte(byteArray), &ticker)
+	fmt.Println(ticker)
+
+	// 最高価格、最終価格、最低価格を取得する
+	var high = ticker.BestAsk
+	var last = ticker.Ltp
+	var low = ticker.BestBid
+	return high, last, low
+}
+
+// 指値で買い注文を出す際の価格を分析する関数
+// 最高取引価格、any%を引数とし、指値注文での価格を戻り値とする
+// any%ルールを適用した場合の価格とする
+func CalculateBuyOrderPriceByAnyPer(high, rate float64) float64 {
+	r := 1 - (rate / 100)
+	buyOrderPrice := high * r
+	return buyOrderPrice
+}
+
+// 売値の注文価格を決める関数
+// 引数は買い注文価格とany%。戻り値は、売値の指値注文の価格、逆指値注文の価格とする。
+func CalculateSellOrderPriceByAnyPer(lastBuyOrderPrice, limitRate, stopRate float64) (limitPrice, stopPrice float64) {
+	lbop := lastBuyOrderPrice
+	lR := 1 + (limitRate / 100)
+	sR := 1 - (stopRate / 100)
+	limitPrice = lbop * lR
+	stopPrice = lbop * sR
+	return limitPrice, stopPrice
+}
+
+// 親注文を出すための関数。基本的には売り注文のみで使う。
+// 指値の売り注文価格と、逆指値の売り注文価格を引数とし、order_idを返り値とする。
+func POSTParentOrder(limitPrice, stopPrice, size float64) string {
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+	// キー付きでsha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "POST"
+	path := "/v1/me/sendparentorder"
+
+	// ToDo: 親注文のパラメータをstructとして定義する。
+	// 親注文のパラメータを定義
+	var paramArray []map[string]interface{}
+	limitParam := map[string]interface{}{
+		"product_code":   "ETH_JPY",
+		"condition_type": "LIMIT",
+		"side":           "SELL",
+		"price":          limitPrice,
+		"size":           size,
+	}
+	stopParam := map[string]interface{}{
+		"product_code":   "ETH_JPY",
+		"condition_type": "STOP",
+		"side":           "SELL",
+		"trigger_price":  stopPrice,
+		"size":           size,
+	}
+	paramArray = append(paramArray, limitParam)
+	paramArray = append(paramArray, stopParam)
+
+	body := map[string]interface{}{
+		"order_method":     "OCO",
+		"minute_to_expire": 43200,
+		"time_in_force":    "GTC",
+		"parameters":       paramArray,
+	}
+	sbody := utils.MapToString(body)
+	text := timestamp + method + path + sbody
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, []byte(sbody))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	// レスポンスボディをstringへ変換して返り値とする
+	byteArray, _ := ioutil.ReadAll(res.Body)
+	sres := string(byteArray)
+	jsonBytes := ([]byte)(sres)
+	data := new(ParentOrderResponse)
+	if err := json.Unmarshal(jsonBytes, data); err != nil {
+		fmt.Println("JSON Unmarshal error:", err)
+		return "Error"
+	}
+	return string(data.ParentOrderAcceptanceID)
+}
+
+// 子注文を出すための関数。基本的には買い注文のみで利用する。
+// 指値の買い注文価格を引数として、order_idを返り値とする
+func POSTChildOrder(price, size float64) string {
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+
+	//sha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "POST"
+	path := "/v1/me/sendchildorder"
+	body := map[string]interface{}{
+		"product_code":     "ETH_JPY",
+		"child_order_type": "LIMIT",
+		"side":             "BUY",
+		"price":            price,
+		"size":             size,
+		"minute_to_expire": 10000,
+		"time_in_force":    "GTC",
+	}
+	sbody := utils.MapToString(body)
+	text := timestamp + method + path + sbody
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		// ToDo:ACCESS-KEYをDBに格納した上で変数に代入できるようにする
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, []byte(sbody))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// レスポンスボディをstringへ変換して返り値とする
+	byteArray, _ := ioutil.ReadAll(res.Body)
+	sres := string(byteArray)
+	jsonBytes := ([]byte)(sres)
+	data := new(ChildOrderResponse)
+
+	if err := json.Unmarshal(jsonBytes, data); err != nil {
+		fmt.Println("JSON Unmarshal error:", err)
+		return "Error"
+	}
+	return string(data.ChildOrderAcceptanceID)
+}
+
+// 約定履歴を取得するための関数。
+// order_idを引数として、boolを返り値とする。
+// ToDo:引数を指定した上で約定履歴を獲得できるようにする。
+func GETExecution(childOrderId string) bool {
+	coi := childOrderId
+
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+
+	// キー付きでsha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "GET"
+	path := "/v1/me/getexecutions?product_code=ETH_JPY&child_order_acceptance_id=" + coi
+	text := timestamp + method + path
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		// ToDo:ACCESS-KEYをDBに格納した上で変数に代入できるようにする
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// レスポンスボディを読み取り、件数が0件ならfalseを戻り値とする
+	byteArray, err := ioutil.ReadAll(res.Body)
+	var data []Executions
+	err = json.Unmarshal(byteArray, &data)
+	if err != nil {
+		fmt.Println(err.Error())
+		return false
+	}
+	if len(data) == 0 {
+		fmt.Println("No data")
+		return false
+	}
+	return true
+}
+
+// 残高を取得するための関数
+// クエリパラメータで通過の種類を引数とし、残高を返り値とする
+func GETBalance(currencyCode string) (available float64) {
+	cc := currencyCode
+
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+	// sha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "GET"
+	path := "/v1/me/getbalance"
+	text := timestamp + method + path
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		// ToDo:ACCESS-KEYをDBに格納した上で変数に代入できるようにする
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// 引数をキーとして指定した通貨コードに紐づく利用可能残高を取得する
+	byteArray, err := ioutil.ReadAll(res.Body)
+	var data []BalanceResponse
+	err = json.Unmarshal(byteArray, &data)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	for i := range data {
+		if data[i].CurrencyCode == cc {
+			return data[i].Amount
+		} else {
+			continue
+		}
+	}
+	return 0
+}
+
+// 注文可能数量をチェックするための関数
+// 価格と利用可能数量を引数とし、数量を返り値とする
+func CheckAvailableOrderSize(price, available float64) float64 {
+	bop := price
+	a := available
+	size := a / bop
+	return utils.RoundDown(size, 3)
+}
+
+// 親注文受付Idをキーにして親注文Idを取得するための関数
+// ParentOrderAcceptanceIDを引数として、ParentOrderIdを戻り値とする
+func GETParentOrderId(parentOrderAcceptionId string) string {
+	poai := parentOrderAcceptionId
+
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+
+	// キー付きでsha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "GET"
+	path := "/v1/me/getparentorder?parent_order_acceptance_id=" + poai
+	text := timestamp + method + path
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		// ToDo:ACCESS-KEYをDBに格納した上で変数に代入できるようにする
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// レスポンスボディを読み取り、親注文Idを取得する
+	byteArray, err := ioutil.ReadAll(res.Body)
+	var data ParentOrder
+	err = json.Unmarshal(byteArray, &data)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return data.ParentOrderID
+}
+
+// 親注文Idをキーにして子注文Idを取得するための関数
+// ParentOrderIdを引数として、ChildOrderAcceptionIdを戻り値とする
+func GETChildOrderId(parentOrderId string) string {
+	poi := parentOrderId
+
+	// アクセスキー、シークレットキーをdbから読み取る
+	accessKey, secretKey := ReadConf()
+
+	// キー付きでsha256で署名を作成
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	method := "GET"
+	path := "/v1/me/getchildorders?product_code=ETH_JPY&parent_order_id=" + poi
+	text := timestamp + method + path
+	sign := utils.MakeHMAC(text, secretKey)
+
+	// リクエストヘッダを作成する
+	header := map[string]string{
+		// ToDo:ACCESS-KEYをDBに格納した上で変数に代入できるようにする
+		"ACCESS-KEY":       accessKey,
+		"ACCESS-TIMESTAMP": timestamp,
+		"ACCESS-SIGN":      sign,
+		"Content-Type":     "application/json",
+	}
+
+	// リクエストを送信する
+	url := bitFlyerEndopoint + path
+	req, err := utils.NewRequest(method, url, header, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	// レスポンスボディを読み取り、件数が0件ならfalseを戻り値とする
+	byteArray, err := ioutil.ReadAll(res.Body)
+	var data []ChildOrder
+	err = json.Unmarshal(byteArray, &data)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	if len(data) == 0 {
+		fmt.Println("No data")
+	}
+	return data[0].ChildOrderAcceptanceID
+}
