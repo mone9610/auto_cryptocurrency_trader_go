@@ -37,9 +37,16 @@ services:
     container_name: go
     environment:
       TZ: 'Asia/Tokyo'
-    # volumes:
-    # - ./docker/go:/go
+    #githubから取得するパッケージは容量が大きいため、gitの管理対象外とし、自作のソースのみマウントする。他のgo関連のfileはDockerfileで取得する
+    volumes:
+    - ./docker/go/src/controller:/go/src/controller
+    - ./docker/go/src/job:/go/src/job
+    - ./docker/go/src/main:/go/src/main
+    - ./docker/go/src/model:/go/src/model
+    - ./docker/go/src/utils:/go/src/utils
     tty: true
+    ports:
+    - 8000:8000
 
   #nginx
   nginx:
@@ -47,3 +54,5 @@ services:
     build: ./docker/view
     ports:
     - 80:80
+    # ToDo:nginxはDockerfileでaddをせず、volumeをマウントする
+    # volumes:

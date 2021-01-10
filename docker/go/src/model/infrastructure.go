@@ -2,7 +2,9 @@ package model
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -147,24 +149,40 @@ func ReadConf() (accessKey, secretKey string) {
 	return conf.Access_Key, conf.Secret_Key
 }
 
-// アクセスキー、シークレットキーをdbを更新する
-// func UpdateConf() (w http.ResponseWriter, r *http.Request) {
-// 	var conf Conf
-// 	json.NewDecoder(r.Body).Decode(&conf)
-// 	db, err := sql.Open("mysql", dbInfo)
-// 	if err != nil {
-// 		panic(err.Error())
-// 	}
-// 	defer db.Close()
+// アクセスキー、シークレットキーをdbから読み取るための関数。confに対してGETメソッドを送った場合に利用する
+func GETConf(w http.ResponseWriter, r *http.Request) {
+	var conf Conf
+	db, err := sql.Open("mysql", dbInfo)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
 
-// 	db.QueryRow("SELECT * FROM conf").Scan(&conf.Id, &conf.Access_Key, &conf.Secret_Key)
+	db.QueryRow("SELECT * FROM conf").Scan(&conf.Id, &conf.Access_Key, &conf.Secret_Key)
 
-// 	if err != nil {
-// 		panic(err.Error())
-// 	}
-// 	json.NewEncoder(w).Encode(article)
-// 	return conf.Access_Key, conf.Secret_Key
-// }
+	if err != nil {
+		panic(err.Error())
+	}
+	json.NewEncoder(w).Encode(&conf)
+}
+
+// アクセスキーを更新するための関数。confに対してPUTメソッドを送った場合に利用する
+func PUTConf(w http.ResponseWriter, r *http.Request) {
+	var conf Conf
+	json.NewDecoder(r.Body).Decode(&conf)
+	db, err := sql.Open("mysql", dbInfo)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
+
+	ins, err := db.Prepare("UPDATE conf SET access_key=?,secret_key=?")
+	if err != nil {
+		panic(err.Error())
+	}
+	ins.Exec(conf.Access_Key, conf.Secret_Key)
+	defer ins.Close()
+}
 
 // 買い注文履歴を保存するための関数
 // 価格と数量とorder_idを引数とする。
