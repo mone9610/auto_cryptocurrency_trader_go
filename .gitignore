@@ -14,4 +14,10 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+#mysql data
 docker/mysql/data
+
+#something about go
+docker/go/bin
+docker/go/src/github.com
+docker/go/pkg

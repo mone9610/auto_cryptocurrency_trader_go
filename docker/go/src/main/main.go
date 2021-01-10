@@ -1,6 +1,7 @@
 package main
 
 import (
+	"controller"
 	"job"
 )
 
@@ -9,7 +10,7 @@ func main() {
 	quit := make(chan bool)
 	go job.WriteTickerJob()
 	go job.AutoTradingJob()
-	// go controller.RESTAPI()
+	go controller.RESTAPI()
 	// 永遠に返らない
 	<-quit
 
