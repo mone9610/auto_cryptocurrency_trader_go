@@ -6,7 +6,9 @@ import (
 	"model"
 	"net/http"
 
+	_ "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 // REST API　Serverとしてgoを起動するための関数
@@ -20,8 +22,19 @@ func RESTAPI() {
 	router.HandleFunc("/api/v1/conf", model.GETConf).Methods("GET")
 	router.HandleFunc("/api/v1/conf", model.PUTConf).Methods("PUT")
 
+	// CORS対応
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPut,
+		},
+		AllowedHeaders: []string{"*"},
+	})
+	handler := c.Handler(router)
+
 	// Start Server
 	log.Println("Listen Server ....")
 	// 異常があった場合、処理を停止したいため、log.Fatal で囲む
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(":8000", handler))
 }

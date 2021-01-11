@@ -1,8 +1,5 @@
 FROM  nginx:latest
 
-#ToDo:docker-composeでボリュームをマウントする
-ADD ./index.html /usr/share/nginx/html
-ADD ./css /usr/share/nginx/html
-ADD ./js /usr/share/nginx/html
-ADD ./img /usr/share/nginx/html
+#設定ファイル(conf)のみビルド時にイメージに追加する
+#その他の静的ファイルはdocker-composeでvolumeにマウントする
 ADD ./conf/default.conf /etc/nginx/conf.d/
