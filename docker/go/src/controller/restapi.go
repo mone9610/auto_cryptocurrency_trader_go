@@ -15,7 +15,6 @@ import (
 func RESTAPI() {
 	fmt.Println("restapi start")
 	router := mux.NewRouter()
-	// router.Use(forCORS)
 
 	// エンドポイント
 	// 以下の形式でリクエストを受け取る。
