@@ -43,24 +43,21 @@ any%ルールに基づいて、ETH/JPYをbitFlyer上で自動取引できます�
 ```
 $ git clone https://github.com/mone9610/auto_cryptocurrency_trader_go.git
 ```
-3. 下記のファイル内のconfテーブルのaccess_keyとsecret_keyを、1で取得したアクセスキーとシークレットキーに書き換えてください。
 
-``` 
-File : auto_cryptocurrency_trader_go/docker/mysql/sql/auto_trader.sql  
-
-INSERT INTO `conf` (`id`, `access_key`, `secret_key`) VALUES
-(1, 'hogehoge', 'hugahuga');
-```
-
-4. リポジトリをcloneしたら、コンテナを起動してください。
+3. リポジトリをcloneしたら、コンテナを起動してください。
 ```
 $ docker-compose up -d
 ```
-5. 下記のファイルを実行し、MySQLとgoのプロセスを起動してください。
+4. 下記のファイルを実行し、MySQLとgoのプロセスを起動してください。
 ```
 $ bash auto-cryptcurrency-trader/tool/init-mysql.sh
 ```
 
+5. 80番ポートにブラウザからアクセスし、簡易設定画面からアクセスキーとシークレットキーを入力してください。
+```
+localhost:80
+```
+※パブリックIPが付与されている場合は、[Public IP:80]にアクセスしてください。
 ## 注意事項
 * 本ツールはMITライセンスですが、bitflyerLightningAPIに関する権利はbitFlyer社様へ帰属します。当ツールを転用して商用利用等を検討される場合には、bitFlyer社様へお問い合わせください。
 * 取得したアクセスキー、シークレットキーに関しては、ご自身の責任において十分に注意してお取り扱いをお願いいたします。
