@@ -16,11 +16,11 @@ func RESTAPI() {
 	fmt.Println("restapi start")
 	router := mux.NewRouter()
 
-	// エンドポイント
-	// 以下の形式でリクエストを受け取る。
-	// work: {"ID":1,"Access_Key":"hogehoge","Secret_Key":"hugahuga"}
 	router.HandleFunc("/api/v1/conf", model.GETConf).Methods("GET")
+	//リクエストボディ: {"ID":1,"Access_Key":"hogehoge","Secret_Key":"hugahuga"}
 	router.HandleFunc("/api/v1/conf", model.PUTConf).Methods("PUT")
+	// ヘルスチェック用のパス
+	router.HandleFunc("/health", healthCheck).Methods("GET")
 
 	// CORS対応
 	c := cors.New(cors.Options{
@@ -37,4 +37,8 @@ func RESTAPI() {
 	log.Println("Listen Server ....")
 	// 異常があった場合、処理を停止したいため、log.Fatal で囲む
 	log.Fatal(http.ListenAndServe(":8000", handler))
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	log.Println("Health Check OK")
 }
