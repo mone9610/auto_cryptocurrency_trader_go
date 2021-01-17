@@ -15,19 +15,18 @@ any%ルールに基づいて、ETH/JPYをbitFlyer上で自動取引できます�
 * 売り注文履歴表示機能(開発中)
 * Ticker履歴表示機能(開発中)
 * 取引高表示機能(開発中)
-* プロセスチェック機能(開発中)
 
 ## 実行環境
 * View(開発中)
   * Nginx
   * BootStrap4(予定)
-  * Vue.js(予定)
+  * TypeScript(予定)
 * Model, Contorller
-  * go(latest)
-  * MySQL5.6
+  * go 1.15
+  * MySQL 5.6
 * その他
   * phpMyAdmin
-  * bash(開発中)
+  * bash
   * docker
   * docker-compose 
 
@@ -50,14 +49,14 @@ $ docker-compose up -d
 ```
 4. 下記のファイルを実行し、MySQLとgoのプロセスを起動してください。
 ```
-$ bash auto-cryptcurrency-trader/tool/init-mysql.sh
+$ bash auto-cryptcurrency-trader/tool/init.sh & auto-cryptcurrency-trader/tool/process_check.sh.sh &
 ```
 
 5. 80番ポートにブラウザからアクセスし、簡易設定画面からアクセスキーとシークレットキーを入力してください。
 ```
 localhost:80
 ```
-※パブリックIPが付与されている場合は、[Public IP:80]にアクセスしてください。
+※パブリックIPが付与されている場合は、localhostをパブリックIPに読み替えてください。
 ## 注意事項
 * 本ツールはMITライセンスですが、bitflyerLightningAPIに関する権利はbitFlyer社様へ帰属します。当ツールを転用して商用利用等を検討される場合には、bitFlyer社様へお問い合わせください。
 * 取得したアクセスキー、シークレットキーに関しては、ご自身の責任において十分に注意してお取り扱いをお願いいたします。
