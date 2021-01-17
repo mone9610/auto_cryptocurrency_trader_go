@@ -31,8 +31,7 @@ any%ルールに基づいて、ETH/JPYをbitFlyer上で自動取引できます�
   * docker-compose 
 
 ## アーキテクチャ
-<img width="821" alt="architecture" src="https://user-images.githubusercontent.com/64692797/103452489-84a42780-4d13-11eb-9767-572636d8c528.png">
-
+<img width="814" alt="スクリーンショット 2021-01-17 15 43 26" src="https://user-images.githubusercontent.com/64692797/104833281-c1a71700-58da-11eb-94cf-812b38a46c6e.png">
 
 ## 使い方
 1. bitFlyerに新規アカウントを作成した上で、口座開設、入金、アクセスキーおよびシークレットキーの取得を実施してください。  
