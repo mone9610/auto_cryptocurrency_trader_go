@@ -1,4 +1,4 @@
-AutoCryptoCurrencyTrader
+auto_cryptocurrency_trader_go
 ====
 
 ## 概要  
