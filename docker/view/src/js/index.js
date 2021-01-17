@@ -31,6 +31,10 @@ function doPUT(url,data){
             var status = document.getElementById('status');
             status.textContent = '更新成功';
         }
+        else{
+            var status = document.getElementById('status');
+            status.textContent = '更新失敗';
+        }
     }
 }
 
