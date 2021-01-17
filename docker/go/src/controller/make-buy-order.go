@@ -12,6 +12,8 @@ func MakeBuyOrder() {
 	available := model.GETBalance("JPY")
 	size := model.CheckAvailableOrderSize(buyOrderPrice, available)
 	childOrderId := model.POSTChildOrder(buyOrderPrice, size)
-	model.WriteBuyOrderInfo(buyOrderPrice, size, childOrderId)
-	model.UpdateTradeMode(1)
+	if childOrderId != "" {
+		model.WriteBuyOrderInfo(buyOrderPrice, size, childOrderId)
+		model.UpdateTradeMode(1)
+	}
 }
