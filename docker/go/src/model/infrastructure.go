@@ -3,7 +3,6 @@ package model
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -74,7 +73,6 @@ type Conf struct {
 func WriteTickerInfo(high, low, last float64) bool {
 	var data = new(TickerChild)
 	*data = TickerChild{high, low, last}
-	fmt.Println(data)
 
 	db, err := sql.Open("mysql", dbInfo)
 	if err != nil {
@@ -90,7 +88,6 @@ func WriteTickerInfo(high, low, last float64) bool {
 	}
 	ins.Exec(data.High, data.Last, data.Low)
 	defer ins.Close()
-	fmt.Println(ins)
 	return true
 }
 
@@ -200,7 +197,6 @@ func WriteBuyOrderInfo(price, size float64, childOrderId string) {
 	}
 	ins.Exec(data.price, data.size, data.child_order_id)
 	defer ins.Close()
-	fmt.Println(ins)
 }
 
 // modeを更新するための関数。
@@ -218,7 +214,6 @@ func UpdateTradeMode(mode int) {
 	}
 	ins.Exec(m)
 	defer ins.Close()
-	fmt.Println(ins)
 }
 
 // 買い注文履歴を読み取るための関数
@@ -226,7 +221,6 @@ func UpdateTradeMode(mode int) {
 // HACK: カラム番号で返り値を取得しているが、他にいい方法がないか検討
 func ReadBuyOrderInfo(columnNum int) interface{} {
 	cn := columnNum
-	fmt.Println(cn)
 	var boi BuyOrderInfo
 	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test_database")
 	if err != nil {
@@ -255,7 +249,6 @@ func ReadBuyOrderInfo(columnNum int) interface{} {
 // HACK: カラム番号で返り値を取得しているが、他にいい方法がないか検討
 func ReadSellOrderInfo(columnNum int) interface{} {
 	cn := columnNum
-	fmt.Println(cn)
 	var boi BuyOrderInfo
 	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test_database")
 	if err != nil {
@@ -295,5 +288,4 @@ func WriteSellOrderInfo(price, size float64, childOrderID string) {
 	}
 	ins.Exec(data.price, data.size, data.child_order_id)
 	defer ins.Close()
-	fmt.Println(ins)
 }

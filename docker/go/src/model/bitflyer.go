@@ -111,11 +111,9 @@ func GETTicker() (hi, la, lo float64) {
 	}
 	defer resp.Body.Close()
 	byteArray, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(byteArray))
 
 	var ticker TickerParent
 	json.Unmarshal([]byte(byteArray), &ticker)
-	fmt.Println(ticker)
 
 	// 最高価格、最終価格、最低価格を取得する
 	var high = ticker.BestAsk
