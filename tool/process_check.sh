@@ -8,9 +8,9 @@ do
     HTTP_STATUS=$(echo $HTTP_RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
     echo "$HTTP_STATUS"
     if [ "$HTTP_STATUS" -eq '200' ]; then
-    echo "goのヘルスチェックに成功しました。"
+    echo "ok"
     else
-    echo "goのヘルスチェックに成功しました。失敗しました。goのプロセスを再起動します。"
+    echo "goのヘルスチェックに失敗しました。goのプロセスを再起動します。"
     docker-compose exec go bash -c "go run main"
     fi
 done

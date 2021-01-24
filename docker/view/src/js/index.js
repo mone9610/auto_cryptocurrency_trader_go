@@ -1,8 +1,9 @@
 // アクセスキー、シークレットキーを格納したjsonを作成する関数
 function makeConfJson(accessKey,secretKey){
     var conf = new Object();
-    conf.Access_Key = accessKey;
-    conf.Secret_Key = secretKey;
+    conf.AccessKey = accessKey;
+    conf.SecretKey = secretKey;
+    conf.IsReady = 1;
     var json = JSON.stringify(conf);
     return json;
 }

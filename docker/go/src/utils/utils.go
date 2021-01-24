@@ -6,16 +6,21 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"io"
+	"log"
 	"math"
 	"net/http"
+	"os"
 )
 
-// 独自headerとbodyでPOSTリクエストを送るための関数
+const logPath = "./error.log"
+
+//NewRequest 独自headerとbodyでPOSTリクエストを送るための関数
 // httpパッケージで対応できないリクエストはこの関数を使う
 func NewRequest(method, url string, header map[string]string, body []byte) (*http.Request, error) {
 	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
+		LogUtil(err, 1)
 		return nil, err
 	}
 	for key, value := range header {
@@ -32,20 +37,53 @@ func MakeHMAC(text, secretKey string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// Map型をstring型へ変換する関数
+//MapToString Map型をstring型へ変換する関数
 func MapToString(bytes map[string]interface{}) string {
 	b, err := json.Marshal(bytes)
 	if err != nil {
-		fmt.Println("JSON marshal error: ", err)
-		return "error"
+		LogUtil(err, 1)
+		return ""
 	}
 	string := string(b)
 	return string
 }
 
-// 小数点切り捨て用関数
+// RoundDown 小数点切り捨て用関数
 // 数値と切捨て位置を引数とし、切捨てた値を返り値とする
 func RoundDown(num, places float64) float64 {
 	shift := math.Pow(10, places)
 	return math.Trunc(num*shift) / shift
+}
+
+// LogUtil ログ出力用関数
+// メッセージを第一引数とし、ログレベルを第二引数とする。
+// 第二引数が2の場合はFatalログとして、コンソールとファイルにメッセージを出力し、プロセスを終了する。
+// 1の場合はエラーログとして、コンソールとファイルにメッセージを出力する。
+// 0の場合はコンソールにのみ出力する。
+func LogUtil(message interface{}, level int) {
+	if level == 2 {
+		logfile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			panic("cannnot open error.log:" + err.Error())
+		}
+		defer logfile.Close()
+
+		log.SetOutput(io.MultiWriter(logfile, os.Stdout))
+
+		log.SetFlags(log.Ldate | log.Ltime)
+		log.Fatal("FATAL:", message)
+	} else if level == 1 {
+		logfile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			panic("cannnot open error.log:" + err.Error())
+		}
+		defer logfile.Close()
+		log.SetOutput(io.MultiWriter(logfile, os.Stdout))
+
+		log.SetFlags(log.Ldate | log.Ltime)
+		log.Println("ERROR:", message)
+	} else {
+		log.Println("INFO:", message)
+	}
+
 }
