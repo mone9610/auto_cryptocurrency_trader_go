@@ -1,19 +1,19 @@
 package controller
 
 import (
-	"fmt"
 	"log"
 	"model"
 	"net/http"
+	"utils"
 
 	_ "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
 
-// REST API　Serverとしてgoを起動するための関数
+// RESTAPI RESTAPI Serverとしてgoを起動するための関数
 func RESTAPI() {
-	fmt.Println("restapi start")
+	utils.LogUtil("RESTAPI start", 0)
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/v1/conf", model.GETConf).Methods("GET")
@@ -33,12 +33,11 @@ func RESTAPI() {
 	})
 	handler := c.Handler(router)
 
-	// Start Server
-	log.Println("Listen Server ....")
 	// 異常があった場合、処理を停止したいため、log.Fatal で囲む
+	// log.Fatal(http.ListenAndServe(":8000", handler))
 	log.Fatal(http.ListenAndServe(":8000", handler))
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Println("Health Check OK")
+	utils.LogUtil("HealthCheck ok", 0)
 }

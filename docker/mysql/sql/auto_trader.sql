@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- ホスト: mysql
--- 生成日時: 2021 年 1 月 02 日 03:43
+-- 生成日時: 2021 年 1 月 24 日 05:57
 -- サーバのバージョン： 5.7.32
--- PHP のバージョン: 7.4.11
+-- PHP のバージョン: 7.4.13
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -47,15 +47,16 @@ CREATE TABLE `buy_order` (
 CREATE TABLE `conf` (
   `id` int(11) NOT NULL,
   `access_key` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `secret_key` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL
+  `secret_key` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_ready` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- テーブルのデータのダンプ `conf`
 --
 
-INSERT INTO `conf` (`id`, `access_key`, `secret_key`) VALUES
-(1, 'hogehoge', 'hugahuga');
+INSERT INTO `conf` (`id`, `access_key`, `secret_key`, `is_ready`) VALUES
+(1, '', '', 0);
 
 -- --------------------------------------------------------
 
@@ -75,7 +76,7 @@ CREATE TABLE `mode` (
 --
 
 INSERT INTO `mode` (`id`, `trade_mode`, `created_at`, `updated_at`) VALUES
-(1, 0, '2020-12-29 09:39:16', '2021-01-01 09:13:49');
+(1, 0, '2020-12-29 09:39:16', '2021-01-17 08:24:03');
 
 -- --------------------------------------------------------
 
@@ -150,7 +151,7 @@ ALTER TABLE `ticker_info`
 -- テーブルの AUTO_INCREMENT `buy_order`
 --
 ALTER TABLE `buy_order`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- テーブルの AUTO_INCREMENT `conf`
@@ -174,7 +175,7 @@ ALTER TABLE `sell_order`
 -- テーブルの AUTO_INCREMENT `ticker_info`
 --
 ALTER TABLE `ticker_info`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

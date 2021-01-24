@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,7 +12,7 @@ import (
 
 const bitFlyerEndopoint = "https://api.bitflyer.com"
 
-// bitFlyerAPIから取得するtickerデータの構造体
+// TickerParent : bitFlyerAPIから取得するtickerデータの構造体
 type TickerParent struct {
 	ProductCode     string  `json:"product_code"`
 	State           string  `json:"state"`
@@ -36,10 +35,12 @@ type ParentOrderResponse struct {
 	ParentOrderAcceptanceID string `json:"parent_order_acceptance_id"`
 }
 
+// ChildOrderResponse 子注文のIDを格納するための構造体
 type ChildOrderResponse struct {
 	ChildOrderAcceptanceID string `json:"child_order_acceptance_id"`
 }
 
+// BalanceResponse bitFlyerLightnintAPIから残高情報を取得するための構造体
 type BalanceResponse struct {
 	CurrencyCode string  `json:"currency_code"`
 	Amount       float64 `json:"amount"`
@@ -102,12 +103,12 @@ func GETTicker() (hi, la, lo float64) {
 	// リクエストを定義
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Fatal(err)
+		utils.LogUtil(err, 1)
 	}
 	// リクエストを送信
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		utils.LogUtil(err, 1)
 	}
 	defer resp.Body.Close()
 	byteArray, _ := ioutil.ReadAll(resp.Body)
@@ -122,7 +123,7 @@ func GETTicker() (hi, la, lo float64) {
 	return high, last, low
 }
 
-// 親注文を出すための関数。基本的には売り注文のみで使う。
+// POSTParentOrder 親注文を出すための関数。基本的には売り注文のみで使う。
 // 指値の売り注文価格と、逆指値の売り注文価格を引数とし、order_idを返り値とする。
 func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 	// アクセスキー、シークレットキーをdbから読み取る
@@ -132,7 +133,6 @@ func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 	method := "POST"
 	path := "/v1/me/sendparentorder"
 
-	// ToDo: 親注文のパラメータをstructとして定義する。
 	// 親注文のパラメータを定義
 	var paramArray []map[string]interface{}
 	limitParam := map[string]interface{}{
@@ -174,11 +174,11 @@ func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 	url := bitFlyerEndopoint + path
 	req, err := utils.NewRequest(method, url, header, []byte(sbody))
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	// レスポンスボディをstringへ変換して返り値とする
 	byteArray, _ := ioutil.ReadAll(res.Body)
@@ -186,13 +186,13 @@ func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 	jsonBytes := ([]byte)(sres)
 	data := new(ParentOrderResponse)
 	if err := json.Unmarshal(jsonBytes, data); err != nil {
-		fmt.Println("JSON Unmarshal error:", err)
-		return "Error"
+		utils.LogUtil(err, 1)
+		return ""
 	}
 	return string(data.ParentOrderAcceptanceID)
 }
 
-// 子注文を出すための関数。基本的には買い注文のみで利用する。
+// POSTChildOrder 子注文を出すための関数。基本的には買い注文のみで利用する。
 // 指値の買い注文価格を引数として、order_idを返り値とする
 func POSTChildOrder(price, size float64) string {
 	// アクセスキー、シークレットキーをdbから読み取る
@@ -228,11 +228,11 @@ func POSTChildOrder(price, size float64) string {
 	url := bitFlyerEndopoint + path
 	req, err := utils.NewRequest(method, url, header, []byte(sbody))
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 
 	// レスポンスボディをstringへ変換して返り値とする
@@ -242,13 +242,13 @@ func POSTChildOrder(price, size float64) string {
 	data := new(ChildOrderResponse)
 
 	if err := json.Unmarshal(jsonBytes, data); err != nil {
-		fmt.Println("JSON Unmarshal error:", err)
-		return "Error"
+		utils.LogUtil(err, 1)
+		return ""
 	}
 	return string(data.ChildOrderAcceptanceID)
 }
 
-// 約定履歴を取得するための関数。
+//  GETExecution 約定履歴を取得するための関数。
 // order_idを引数として、boolを返り値とする。
 // ToDo:引数を指定した上で約定履歴を獲得できるようにする。
 func GETExecution(childOrderId string) bool {
@@ -299,7 +299,7 @@ func GETExecution(childOrderId string) bool {
 	return true
 }
 
-// 残高を取得するための関数
+// GETBalance 残高を取得するための関数
 // クエリパラメータで通過の種類を引数とし、残高を返り値とする
 func GETBalance(currencyCode string) (available float64) {
 	cc := currencyCode
@@ -326,11 +326,11 @@ func GETBalance(currencyCode string) (available float64) {
 	url := bitFlyerEndopoint + path
 	req, err := utils.NewRequest(method, url, header, nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 
 	// 引数をキーとして指定した通貨コードに紐づく利用可能残高を取得する
@@ -338,7 +338,7 @@ func GETBalance(currencyCode string) (available float64) {
 	var data []BalanceResponse
 	err = json.Unmarshal(byteArray, &data)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	for i := range data {
 		if data[i].CurrencyCode == cc {
@@ -350,10 +350,10 @@ func GETBalance(currencyCode string) (available float64) {
 	return 0
 }
 
-// 親注文受付Idをキーにして親注文Idを取得するための関数
+// GETParentOrderId 親注文受付Idをキーにして親注文Idを取得するための関数
 // ParentOrderAcceptanceIDを引数として、ParentOrderIdを戻り値とする
-func GETParentOrderId(parentOrderAcceptionId string) string {
-	poai := parentOrderAcceptionId
+func GETParentOrderID(parentOrderAcceptionID string) string {
+	poai := parentOrderAcceptionID
 
 	// アクセスキー、シークレットキーをdbから読み取る
 	accessKey, secretKey := ReadConf()
@@ -395,10 +395,10 @@ func GETParentOrderId(parentOrderAcceptionId string) string {
 	return data.ParentOrderID
 }
 
-// 親注文Idをキーにして子注文Idを取得するための関数
+// GETChildOrderID 　親注文Idをキーにして子注文Idを取得するための関数
 // ParentOrderIdを引数として、ChildOrderAcceptionIdを戻り値とする
-func GETChildOrderId(parentOrderId string) string {
-	poi := parentOrderId
+func GETChildOrderID(parentOrderID string) string {
+	poi := parentOrderID
 
 	// アクセスキー、シークレットキーをdbから読み取る
 	accessKey, secretKey := ReadConf()
@@ -423,11 +423,11 @@ func GETChildOrderId(parentOrderId string) string {
 	url := bitFlyerEndopoint + path
 	req, err := utils.NewRequest(method, url, header, nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 
 	// レスポンスボディを読み取り、件数が0件ならfalseを戻り値とする
@@ -435,10 +435,10 @@ func GETChildOrderId(parentOrderId string) string {
 	var data []ChildOrder
 	err = json.Unmarshal(byteArray, &data)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	if len(data) == 0 {
-		fmt.Println("No data")
+		utils.LogUtil("Can't get chiledOrderID", 1)
 	}
 	return data[0].ChildOrderAcceptanceID
 }
