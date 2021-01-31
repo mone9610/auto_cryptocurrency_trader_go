@@ -289,7 +289,7 @@ func ReadBuyOrderInfo(columnNum int) interface{} {
 func ReadSellOrderInfo(columnNum int) interface{} {
 	cn := columnNum
 	var soi sellOrderInfo
-	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test_database")
+	db, err := sql.Open("mysql", dbInfo)
 	if err != nil {
 		utils.LogUtil(err, 1)
 	}
@@ -299,6 +299,7 @@ func ReadSellOrderInfo(columnNum int) interface{} {
 	if err != nil {
 		utils.LogUtil(err, 1)
 	}
+	fmt.Println(soi)
 	switch cn {
 	case 3:
 		value := soi.price

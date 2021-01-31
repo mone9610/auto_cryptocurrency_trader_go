@@ -9,8 +9,9 @@ import (
 func MakeSellOrder() {
 	lastBuyOrderPrice := model.ReadBuyOrderInfo(3)
 	limitPrice, stopPrice := model.CalculateSellOrderPriceByAnyPer(lastBuyOrderPrice.(float64), 5, 10)
-	available := utils.RoundDown(model.GETBalance("ETH"), 2)
-	parentOrderAcceptionID := model.POSTParentOrder(limitPrice, stopPrice, available)
+	available := model.GETBalance("ETH")
+	size := utils.RoundDown(model.CheckAvailableOrderSize(limitPrice, available), 3)
+	parentOrderAcceptionID := model.POSTParentOrder(limitPrice, stopPrice, size)
 	parentOrderID := model.GETParentOrderID(parentOrderAcceptionID)
 	childOrderID := model.GETChildOrderID(parentOrderID)
 	if childOrderID != "" {
