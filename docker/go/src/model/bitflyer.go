@@ -158,6 +158,7 @@ func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 		"time_in_force":    "GTC",
 		"parameters":       paramArray,
 	}
+	fmt.Println(body)
 	sbody := utils.MapToString(body)
 	text := timestamp + method + path + sbody
 	sign := utils.MakeHMAC(text, secretKey)
@@ -248,11 +249,15 @@ func POSTChildOrder(price, size float64) string {
 	return string(data.ChildOrderAcceptanceID)
 }
 
-//  GETExecution 約定履歴を取得するための関数。
+// GETExecution 約定履歴を取得するための関数。
 // order_idを引数として、boolを返り値とする。
 // ToDo:引数を指定した上で約定履歴を獲得できるようにする。
-func GETExecution(childOrderId string) bool {
-	coi := childOrderId
+func GETExecution(childOrderID string) bool {
+	coi := childOrderID
+	if coi == "" {
+		utils.LogUtil("childOrderID is null", 1)
+		return false
+	}
 
 	// アクセスキー、シークレットキーをdbから読み取る
 	accessKey, secretKey := ReadConf()
@@ -399,6 +404,12 @@ func GETParentOrderID(parentOrderAcceptionID string) string {
 // ParentOrderIdを引数として、ChildOrderAcceptionIdを戻り値とする
 func GETChildOrderID(parentOrderID string) string {
 	poi := parentOrderID
+
+	// 親注文IDがnullの場合、子注文IDを取得しない
+	if poi == "" {
+		utils.LogUtil("parentOrderID is null", 1)
+		return ""
+	}
 
 	// アクセスキー、シークレットキーをdbから読み取る
 	accessKey, secretKey := ReadConf()

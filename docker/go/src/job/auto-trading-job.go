@@ -2,7 +2,6 @@ package job
 
 import (
 	"controller"
-	"fmt"
 	"model"
 	"utils"
 
@@ -22,10 +21,10 @@ func AutoTradingJob() {
 				utils.LogUtil("Mode is 1,now func WatchBuyExecution is going to be executed.", 0)
 				controller.WatchBuyExecution()
 			} else if tradeMode == 2 {
-				fmt.Println("Mode is 2,now func makeSellOrder is going to be executed.")
+				utils.LogUtil("Mode is 2,now func MakeSellOrder is going to be executed.", 0)
 				controller.MakeSellOrder()
 			} else if tradeMode == 3 {
-				fmt.Println("Mode is 3,now func makeSellOrder is going to be executed.")
+				utils.LogUtil("Mode is 3,now func WatchSellExecution is going to be executed.", 0)
 				controller.WatchSellExecution()
 			}
 		} else {
