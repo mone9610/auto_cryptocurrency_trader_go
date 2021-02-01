@@ -158,7 +158,6 @@ func POSTParentOrder(limitPrice, stopPrice, size float64) string {
 		"time_in_force":    "GTC",
 		"parameters":       paramArray,
 	}
-	fmt.Println(body)
 	sbody := utils.MapToString(body)
 	text := timestamp + method + path + sbody
 	sign := utils.MakeHMAC(text, secretKey)
@@ -355,7 +354,7 @@ func GETBalance(currencyCode string) (available float64) {
 	return 0
 }
 
-// GETParentOrderId 親注文受付Idをキーにして親注文Idを取得するための関数
+//GETParentOrderID 親注文受付Idをキーにして親注文Idを取得するための関数
 // ParentOrderAcceptanceIDを引数として、ParentOrderIdを戻り値とする
 func GETParentOrderID(parentOrderAcceptionID string) string {
 	poai := parentOrderAcceptionID
@@ -383,11 +382,11 @@ func GETParentOrderID(parentOrderAcceptionID string) string {
 	url := bitFlyerEndopoint + path
 	req, err := utils.NewRequest(method, url, header, nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 
 	// レスポンスボディを読み取り、親注文Idを取得する
@@ -395,7 +394,7 @@ func GETParentOrderID(parentOrderAcceptionID string) string {
 	var data ParentOrder
 	err = json.Unmarshal(byteArray, &data)
 	if err != nil {
-		fmt.Println(err.Error())
+		utils.LogUtil(err, 1)
 	}
 	return data.ParentOrderID
 }
@@ -445,6 +444,7 @@ func GETChildOrderID(parentOrderID string) string {
 	byteArray, err := ioutil.ReadAll(res.Body)
 	var data []ChildOrder
 	err = json.Unmarshal(byteArray, &data)
+	fmt.Println(data)
 	if err != nil {
 		utils.LogUtil(err, 1)
 	}

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"model"
+	"time"
 	"utils"
 )
 
@@ -9,10 +10,13 @@ import (
 func MakeSellOrder() {
 	lastBuyOrderPrice := model.ReadBuyOrderInfo(3)
 	limitPrice, stopPrice := model.CalculateSellOrderPriceByAnyPer(lastBuyOrderPrice.(float64), 5, 10)
-	available := model.GETBalance("ETH")
-	size := utils.RoundDown(model.CheckAvailableOrderSize(limitPrice, available), 3)
-	parentOrderAcceptionID := model.POSTParentOrder(limitPrice, stopPrice, size)
+	limitPrice = utils.RoundDown(limitPrice, 0)
+	stopPrice = utils.RoundDown(stopPrice, 0)
+	available := utils.RoundDown(model.GETBalance("ETH"), 3)
+	parentOrderAcceptionID := model.POSTParentOrder(limitPrice, stopPrice, available)
 	parentOrderID := model.GETParentOrderID(parentOrderAcceptionID)
+	// 親注文を出してすぐだと子注文IDが取得できないのでsleepする
+	time.Sleep(time.Second * 2)
 	childOrderID := model.GETChildOrderID(parentOrderID)
 	if childOrderID != "" {
 		// ToDo:LIMIT注文しか書き込めていない。STOP注文の情報も書き込めるように変更する
