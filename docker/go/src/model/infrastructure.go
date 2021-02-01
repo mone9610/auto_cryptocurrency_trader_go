@@ -299,7 +299,6 @@ func ReadSellOrderInfo(columnNum int) interface{} {
 	if err != nil {
 		utils.LogUtil(err, 1)
 	}
-	fmt.Println(soi)
 	switch cn {
 	case 3:
 		value := soi.price
