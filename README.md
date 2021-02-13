@@ -17,10 +17,8 @@ any%ルールに基づいて、ETH/JPYをbitFlyer上で自動取引できます�
 * 取引高表示機能(開発中)
 
 ## 実行環境
-* View(開発中)
+* View
   * Nginx
-  * BootStrap4(予定)
-  * TypeScript(予定)
 * Model, Contorller
   * go 1.15
   * MySQL 5.6
