@@ -8,8 +8,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: auto_trader
-      MYSQL_USER: user1
-      MYSQL_PASSWORD: user1
       TZ: 'Asia/Tokyo'
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
@@ -18,6 +16,7 @@ services:
     - ./docker/mysql/sql:/docker-entrypoint-initdb.d
     ports:
     - 3306:3306
+    restart: always
 
   # phpMyAdmin
   phpmyadmin:
