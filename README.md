@@ -46,12 +46,18 @@ $ docker-compose up -d
 ```
 4. 下記のファイルを実行し、MySQLとgoのプロセスを起動してください。
 ```
-$ bash auto-cryptcurrency-trader/tool/init.sh & auto-cryptcurrency-trader/tool/process_check.sh.sh &
+$ cd tool/
+$ bash init.sh & bash process_check.sh
 ```
 
 5. 80番ポートにブラウザからアクセスし、簡易設定画面からアクセスキーとシークレットキーを入力してください。
 ```
 localhost:80
+```
+
+6. 8080番ポートにブラウザからアクセスすると、phpMyAdminで　MySQLを参照できます。
+```
+localhost:8080
 ```
 ※パブリックIPが付与されている場合は、localhostをパブリックIPに読み替えてください。
 ## 注意事項
